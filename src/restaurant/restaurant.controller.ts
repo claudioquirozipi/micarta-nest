@@ -14,6 +14,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RestaurantService } from './restaurant.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
+import { UpdateLogoDto } from './dto/update-logo.dto';
 
 @Controller('restaurants')
 @UseGuards(JwtAuthGuard)
@@ -47,5 +48,21 @@ export class RestaurantController {
     @Body() dto: UpdateRestaurantDto,
   ) {
     return this.restaurantService.update(id, userId, dto);
+  }
+
+  /** Genera firma para subir el logo directamente a Cloudinary desde el front */
+  @Post(':id/logo/sign')
+  signLogoUpload(@Param('id') id: string, @CurrentUser() userId: string) {
+    return this.restaurantService.signLogoUpload(id, userId);
+  }
+
+  /** Guarda la URL del logo tras la subida exitosa a Cloudinary */
+  @Patch(':id/logo')
+  updateLogo(
+    @Param('id') id: string,
+    @CurrentUser() userId: string,
+    @Body() dto: UpdateLogoDto,
+  ) {
+    return this.restaurantService.updateLogo(id, userId, dto.logoUrl);
   }
 }

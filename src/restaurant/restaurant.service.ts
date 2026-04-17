@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 import { MemberRole } from '@prisma/client';
@@ -35,7 +36,10 @@ const RESTAURANT_SELECT = {
 
 @Injectable()
 export class RestaurantService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma:      PrismaService,
+    private cloudinary:  CloudinaryService,
+  ) {}
 
   async create(ownerId: string, dto: CreateRestaurantDto) {
     const slugTaken = await this.prisma.restaurant.findUnique({
@@ -116,6 +120,12 @@ export class RestaurantService {
       data: { logoUrl },
       select: { id: true, logoUrl: true },
     });
+  }
+
+  async signLogoUpload(restaurantId: string, userId: string) {
+    await this.assertOwner(restaurantId, userId);
+    const publicId = `micarta/restaurants/${restaurantId}/logo`;
+    return this.cloudinary.signUpload(publicId);
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
