@@ -15,5 +15,9 @@ export class CreateUserDto {
 
   @IsString()
   @IsOptional()
+  avatarUrl?: string;
+
+  @IsString()
+  @IsOptional()
   googleId?: string;
 }

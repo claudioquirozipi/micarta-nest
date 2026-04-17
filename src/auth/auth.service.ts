@@ -36,21 +36,27 @@ export class AuthService {
     return { accessToken: this.signToken(user.id, user.email), user: safeUser };
   }
 
-  async validateGoogleUser(data: { googleId: string; email: string; name: string }) {
+  async validateGoogleUser(data: {
+    googleId:  string;
+    email:     string;
+    name:      string;
+    avatarUrl: string;
+  }) {
     let user = await this.userService.findByGoogleId(data.googleId);
 
     if (!user) {
       user = await this.userService.findByEmail(data.email);
 
       if (user) {
-        // email ya existe, vincular cuenta de Google
-        user = await this.userService.linkGoogle(user.id, data.googleId);
+        // email ya existe → vincular Google y guardar avatar si no tenía
+        user = await this.userService.linkGoogle(user.id, data.googleId, data.avatarUrl);
       } else {
-        // crear nuevo usuario
+        // usuario nuevo
         const created = await this.userService.create({
-          email: data.email,
-          name: data.name,
-          googleId: data.googleId,
+          email:     data.email,
+          name:      data.name,
+          avatarUrl: data.avatarUrl,
+          googleId:  data.googleId,
         });
         return { accessToken: this.signToken(created.id, created.email), user: created };
       }

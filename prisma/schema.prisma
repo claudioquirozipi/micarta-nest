@@ -22,20 +22,27 @@ enum SocialPlatform {
   YOUTUBE
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
   name         String?
+  avatarUrl    String?
   passwordHash String?
   googleId     String?  @unique
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  ownedRestaurants Restaurant[]       @relation("RestaurantOwner")
+  ownedRestaurants Restaurant[]         @relation("RestaurantOwner")
   memberships      RestaurantMember[]
+  sentInvitations  RestaurantInvitation[] @relation("InvitedBy")
 
   @@map("users")
 }
@@ -54,12 +61,12 @@ model Restaurant {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Owner — no editable una vez creado
   ownerId String
   owner   User   @relation("RestaurantOwner", fields: [ownerId], references: [id])
 
   members     RestaurantMember[]
   socialLinks RestaurantSocialLink[]
+  invitations RestaurantInvitation[]
 
   @@map("restaurants")
 }
@@ -67,6 +74,7 @@ model Restaurant {
 model RestaurantMember {
   id        String     @id @default(cuid())
   role      MemberRole
+  isActive  Boolean    @default(true)
   createdAt DateTime   @default(now())
 
   userId String
@@ -82,11 +90,29 @@ model RestaurantMember {
 model RestaurantSocialLink {
   id       String         @id @default(cuid())
   platform SocialPlatform
-  handle   String         // usuario / handle (sin @)
+  handle   String
 
   restaurantId String
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@unique([restaurantId, platform])
   @@map("restaurant_social_links")
+}
+
+model RestaurantInvitation {
+  id          String           @id @default(cuid())
+  email       String
+  role        MemberRole
+  status      InvitationStatus @default(PENDING)
+  acceptedAt  DateTime?
+  createdAt   DateTime         @default(now())
+
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  invitedById String
+  invitedBy   User   @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@unique([restaurantId, email])
+  @@map("restaurant_invitations")
 }
