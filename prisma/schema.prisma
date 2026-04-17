@@ -6,6 +6,24 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  WAITER
+  CHEF
+}
+
+enum SocialPlatform {
+  FACEBOOK
+  INSTAGRAM
+  TIKTOK
+  YOUTUBE
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -16,5 +34,59 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  ownedRestaurants Restaurant[]       @relation("RestaurantOwner")
+  memberships      RestaurantMember[]
+
   @@map("users")
+}
+
+model Restaurant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logoUrl     String?
+  address     String?
+  phone       String?
+  whatsapp    String?
+  schedule    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Owner — no editable una vez creado
+  ownerId String
+  owner   User   @relation("RestaurantOwner", fields: [ownerId], references: [id])
+
+  members     RestaurantMember[]
+  socialLinks RestaurantSocialLink[]
+
+  @@map("restaurants")
+}
+
+model RestaurantMember {
+  id        String     @id @default(cuid())
+  role      MemberRole
+  createdAt DateTime   @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, restaurantId])
+  @@map("restaurant_members")
+}
+
+model RestaurantSocialLink {
+  id       String         @id @default(cuid())
+  platform SocialPlatform
+  handle   String         // usuario / handle (sin @)
+
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, platform])
+  @@map("restaurant_social_links")
 }
