@@ -34,6 +34,12 @@ export class RestaurantController {
     return this.restaurantService.findMine(userId);
   }
 
+  /** Acceso de staff: devuelve restaurant + rol del usuario autenticado */
+  @Get('member-access/:slug')
+  getMemberAccess(@Param('slug') slug: string, @CurrentUser() userId: string) {
+    return this.restaurantService.getMemberAccess(slug, userId);
+  }
+
   /** Obtener restaurante por slug (público, pero protegido por JWT por ahora) */
   @Get('slug/:slug')
   findBySlug(@Param('slug') slug: string) {

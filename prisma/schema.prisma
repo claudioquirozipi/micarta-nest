@@ -27,6 +27,20 @@ enum InvitationStatus {
   ACCEPTED
 }
 
+enum OrderStatus {
+  PENDING
+  COOKING
+  READY
+  SERVED
+  FINISHED
+  CANCELLED
+}
+
+enum OrderType {
+  WHATSAPP
+  TABLE
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -43,6 +57,7 @@ model User {
   ownedRestaurants Restaurant[]         @relation("RestaurantOwner")
   memberships      RestaurantMember[]
   sentInvitations  RestaurantInvitation[] @relation("InvitedBy")
+  createdOrders    Order[]              @relation("OrderCreator")
 
   @@map("users")
 }
@@ -69,6 +84,7 @@ model Restaurant {
   invitations RestaurantInvitation[]
   categories  Category[]
   dishes      Dish[]
+  orders      Order[]
 
   @@map("restaurants")
 }
@@ -98,10 +114,52 @@ model Dish {
   category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   restaurantId String
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orderItems   OrderItem[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@map("dishes")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  type            OrderType
+  status          OrderStatus @default(PENDING)
+  isPaid          Boolean     @default(false)
+  tableNumber     String?
+  customerName    String?
+  customerPhone   String?
+  customerAddress String?
+  notes           String?
+  total           Float
+
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation("OrderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  items     OrderItem[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  dishName  String
+  dishPrice Float
+  quantity  Int
+  subtotal  Float
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  dishId String?
+  dish   Dish?   @relation(fields: [dishId], references: [id], onDelete: SetNull)
+
+  @@map("order_items")
 }
 
 model RestaurantMember {

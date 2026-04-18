@@ -72,6 +72,23 @@ export class RestaurantService {
     });
   }
 
+  async getMemberAccess(slug: string, userId: string) {
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { slug },
+      select: { id: true, name: true, slug: true, whatsapp: true },
+    });
+    if (!restaurant) throw new NotFoundException('Restaurante no encontrado.');
+
+    const member = await this.prisma.restaurantMember.findUnique({
+      where:  { userId_restaurantId: { userId, restaurantId: restaurant.id } },
+      select: { role: true, isActive: true },
+    });
+    if (!member || !member.isActive)
+      throw new ForbiddenException('No tienes acceso a este restaurante.');
+
+    return { ...restaurant, role: member.role };
+  }
+
   async findBySlug(slug: string) {
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { slug },
