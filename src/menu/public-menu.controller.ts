@@ -26,6 +26,14 @@ export class PublicMenuController {
     if (!restaurant || !restaurant.isActive)
       throw new NotFoundException('Restaurante no encontrado.');
 
+    const sub      = await this.prisma.subscription.findUnique({
+      where:  { restaurantId: restaurant.id },
+      select: { currentPeriodEnd: true },
+    });
+    const deadline = sub ? new Date(sub.currentPeriodEnd) : new Date(0);
+    deadline.setDate(deadline.getDate() + 3);
+    const isPremium = new Date() <= deadline;
+
     const categories = await this.prisma.category.findMany({
       where: { restaurantId: restaurant.id },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
@@ -46,6 +54,6 @@ export class PublicMenuController {
       },
     });
 
-    return { restaurant, categories };
+    return { restaurant: { ...restaurant, isPremium }, categories };
   }
 }

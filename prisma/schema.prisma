@@ -41,6 +41,23 @@ enum OrderType {
   TABLE
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+enum SubscriptionPlan {
+  CARD
+  YAPE
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -79,12 +96,13 @@ model Restaurant {
   ownerId String
   owner   User   @relation("RestaurantOwner", fields: [ownerId], references: [id])
 
-  members     RestaurantMember[]
-  socialLinks RestaurantSocialLink[]
-  invitations RestaurantInvitation[]
-  categories  Category[]
-  dishes      Dish[]
-  orders      Order[]
+  members      RestaurantMember[]
+  socialLinks  RestaurantSocialLink[]
+  invitations  RestaurantInvitation[]
+  categories   Category[]
+  dishes       Dish[]
+  orders       Order[]
+  subscription Subscription?
 
   @@map("restaurants")
 }
@@ -160,6 +178,39 @@ model OrderItem {
   dish   Dish?   @relation(fields: [dishId], references: [id], onDelete: SetNull)
 
   @@map("order_items")
+}
+
+model Subscription {
+  id               String             @id @default(cuid())
+  restaurantId     String             @unique
+  restaurant       Restaurant         @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  status           SubscriptionStatus @default(EXPIRED)
+  billingDay       Int?
+  currentPeriodEnd DateTime
+  plan             SubscriptionPlan?
+  culqiCustomerId  String?
+  culqiSubId       String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  payments         Payment[]
+
+  @@map("subscriptions")
+}
+
+model Payment {
+  id             String           @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription     @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  plan           SubscriptionPlan
+  months         Int
+  amount         Float
+  status         PaymentStatus    @default(PENDING)
+  operationCode  String?
+  confirmedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@map("payments")
 }
 
 model RestaurantMember {

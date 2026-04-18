@@ -18,6 +18,7 @@ import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { JwtQueryGuard } from '../auth/guards/jwt-query.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { SubscriptionGuard } from '../subscription/guards/subscription.guard';
 import { OrderService } from './order.service';
 import { SseService, SseEvent } from '../sse/sse.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -30,7 +31,7 @@ class UpdatePaymentDto {
 }
 
 @Controller('restaurants/:restaurantId/orders')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
 export class OrderController {
   constructor(
     private readonly svc: OrderService,

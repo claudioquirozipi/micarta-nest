@@ -4,10 +4,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { OrderController } from './order.controller';
 import { OrderService } from './order.service';
 import { SseModule } from '../sse/sse.module';
+import { SubscriptionModule } from '../subscription/subscription.module';
 
 @Module({
   imports: [
     SseModule,
+    SubscriptionModule,
     JwtModule.registerAsync({
       imports:    [ConfigModule],
       inject:     [ConfigService],
