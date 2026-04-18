@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { MemberRole, OrderStatus, OrderType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SseService } from '../sse/sse.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { QueryOrdersDto } from './dto/query-orders.dto';
 
@@ -66,7 +67,10 @@ const TRANSITIONS: Record<MemberRole, Partial<Record<OrderStatus, OrderStatus[]>
 
 @Injectable()
 export class OrderService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private sse:    SseService,
+  ) {}
 
   // ── Create ────────────────────────────────────────────────
 
@@ -106,7 +110,7 @@ export class OrderService {
       ? OrderStatus.SERVED
       : OrderStatus.PENDING;
 
-    return this.prisma.order.create({
+    const order = await this.prisma.order.create({
       data: {
         restaurantId,
         type:           dto.type,
@@ -122,6 +126,8 @@ export class OrderService {
       },
       select: ORDER_SELECT,
     });
+    this.sse.emit(restaurantId, 'order.created', order);
+    return order;
   }
 
   // ── List ──────────────────────────────────────────────────
@@ -168,23 +174,25 @@ export class OrderService {
   async updateStatus(restaurantId: string, orderId: string, userId: string, newStatus: OrderStatus) {
     const member = await this.assertActiveMember(restaurantId, userId);
 
-    const order = await this.prisma.order.findFirst({
+    const existing = await this.prisma.order.findFirst({
       where:  { id: orderId, restaurantId },
       select: { status: true },
     });
-    if (!order) throw new NotFoundException('Orden no encontrada.');
+    if (!existing) throw new NotFoundException('Orden no encontrada.');
 
-    const allowed = TRANSITIONS[member.role]?.[order.status] ?? [];
+    const allowed = TRANSITIONS[member.role]?.[existing.status] ?? [];
     if (!allowed.includes(newStatus))
       throw new BadRequestException(
-        `El rol ${member.role} no puede cambiar de ${order.status} a ${newStatus}.`,
+        `El rol ${member.role} no puede cambiar de ${existing.status} a ${newStatus}.`,
       );
 
-    return this.prisma.order.update({
+    const order = await this.prisma.order.update({
       where:  { id: orderId },
       data:   { status: newStatus },
       select: ORDER_SELECT,
     });
+    this.sse.emit(restaurantId, 'order.updated', order);
+    return order;
   }
 
   // ── Toggle payment ────────────────────────────────────────
@@ -195,16 +203,18 @@ export class OrderService {
     if (member.role === MemberRole.CHEF)
       throw new ForbiddenException('Los cocineros no pueden registrar pagos.');
 
-    const order = await this.prisma.order.findFirst({
+    const existing = await this.prisma.order.findFirst({
       where: { id: orderId, restaurantId },
     });
-    if (!order) throw new NotFoundException('Orden no encontrada.');
+    if (!existing) throw new NotFoundException('Orden no encontrada.');
 
-    return this.prisma.order.update({
+    const order = await this.prisma.order.update({
       where:  { id: orderId },
       data:   { isPaid },
       select: ORDER_SELECT,
     });
+    this.sse.emit(restaurantId, 'order.updated', order);
+    return order;
   }
 
   // ── Helpers ───────────────────────────────────────────────

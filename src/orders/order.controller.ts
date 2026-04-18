@@ -8,12 +8,18 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  Sse,
   UseGuards,
 } from '@nestjs/common';
+import { Observable } from 'rxjs';
 import { IsBoolean } from 'class-validator';
+import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtQueryGuard } from '../auth/guards/jwt-query.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { OrderService } from './order.service';
+import { SseService, SseEvent } from '../sse/sse.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { QueryOrdersDto } from './dto/query-orders.dto';
@@ -26,7 +32,21 @@ class UpdatePaymentDto {
 @Controller('restaurants/:restaurantId/orders')
 @UseGuards(JwtAuthGuard)
 export class OrderController {
-  constructor(private readonly svc: OrderService) {}
+  constructor(
+    private readonly svc: OrderService,
+    private readonly sse: SseService,
+  ) {}
+
+  @Sse('events')
+  @UseGuards(JwtQueryGuard)
+  stream(
+    @Param('restaurantId') restaurantId: string,
+    @Req() req: Request,
+  ): Observable<SseEvent> {
+    const { stream, cleanup } = this.sse.addConnection(restaurantId);
+    req.on('close', cleanup);
+    return stream;
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
