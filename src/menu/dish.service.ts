@@ -59,7 +59,9 @@ export class DishService {
     await this.prisma.dish.delete({ where: { id } });
   }
 
-  signImageUpload(restaurantId: string, dishId: string) {
+  async signImageUpload(restaurantId: string, dishId: string, ownerId: string) {
+    await this.assertOwner(restaurantId, ownerId);
+    await this.assertDishBelongs(dishId, restaurantId);
     const publicId = `micarta/restaurants/${restaurantId}/menu/${dishId}`;
     return this.cloudinary.signUpload(publicId);
   }

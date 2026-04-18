@@ -73,9 +73,7 @@ export class DishController {
     @Param('id') id: string,
     @CurrentUser() userId: string,
   ) {
-    // assertOwner será necesario; para MVP confiamos en que el dueño llama este endpoint
-    void userId;
-    return this.svc.signImageUpload(restaurantId, id);
+    return this.svc.signImageUpload(restaurantId, id, userId);
   }
 
   @Delete(':id')
