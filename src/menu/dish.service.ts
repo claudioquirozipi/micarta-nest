@@ -37,8 +37,8 @@ export class DishService {
     return this.prisma.dish.update({ where: { id }, data: dto });
   }
 
-  async updateAvailability(restaurantId: string, id: string, ownerId: string, isAvailable: boolean) {
-    await this.assertOwner(restaurantId, ownerId);
+  async updateAvailability(restaurantId: string, id: string, userId: string, isAvailable: boolean) {
+    await this.assertActiveMember(restaurantId, userId);
     await this.assertDishBelongs(id, restaurantId);
     return this.prisma.dish.update({ where: { id }, data: { isAvailable } });
   }
@@ -64,6 +64,14 @@ export class DishService {
     await this.assertDishBelongs(dishId, restaurantId);
     const publicId = `micarta/restaurants/${restaurantId}/menu/${dishId}`;
     return this.cloudinary.signUpload(publicId);
+  }
+
+  private async assertActiveMember(restaurantId: string, userId: string) {
+    const member = await this.prisma.restaurantMember.findUnique({
+      where:  { userId_restaurantId: { userId, restaurantId } },
+      select: { isActive: true },
+    });
+    if (!member?.isActive) throw new ForbiddenException('No tienes acceso a este restaurante.');
   }
 
   private async assertOwner(restaurantId: string, ownerId: string) {

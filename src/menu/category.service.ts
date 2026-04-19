@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -19,6 +20,33 @@ export class CategoryService {
       include: {
         dishes: {
           orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+        },
+      },
+    });
+  }
+
+  // Accesible a cualquier miembro activo — devuelve TODOS los platos (incl. no disponibles)
+  async findAllStaff(restaurantId: string, userId: string) {
+    const member = await this.prisma.restaurantMember.findUnique({
+      where:  { userId_restaurantId: { userId, restaurantId } },
+      select: { isActive: true },
+    });
+    if (!member?.isActive) throw new ForbiddenException('No tienes acceso a este restaurante.');
+
+    return this.prisma.category.findMany({
+      where:   { restaurantId },
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        id:   true,
+        name: true,
+        dishes: {
+          orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+          select: {
+            id:          true,
+            name:        true,
+            price:       true,
+            isAvailable: true,
+          },
         },
       },
     });

@@ -26,6 +26,11 @@ export class CategoryController {
     return this.svc.findAll(restaurantId, userId);
   }
 
+  @Get('staff')
+  findAllStaff(@Param('restaurantId') restaurantId: string, @CurrentUser() userId: string) {
+    return this.svc.findAllStaff(restaurantId, userId);
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(
