@@ -1,0 +1,8 @@
+[build]
+builder = "RAILPACK"
+
+[build.variables]
+NODE_ENV = "development"
+
+[deploy]
+startCommand = "npm run start:prod"
