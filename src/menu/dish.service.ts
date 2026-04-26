@@ -38,7 +38,7 @@ export class DishService {
   }
 
   async updateAvailability(restaurantId: string, id: string, userId: string, isAvailable: boolean) {
-    await this.assertActiveMember(restaurantId, userId);
+    await this.assertAdminOrOwner(restaurantId, userId);
     await this.assertDishBelongs(id, restaurantId);
     return this.prisma.dish.update({ where: { id }, data: { isAvailable } });
   }
@@ -66,12 +66,14 @@ export class DishService {
     return this.cloudinary.signUpload(publicId);
   }
 
-  private async assertActiveMember(restaurantId: string, userId: string) {
+  private async assertAdminOrOwner(restaurantId: string, userId: string) {
     const member = await this.prisma.restaurantMember.findUnique({
       where:  { userId_restaurantId: { userId, restaurantId } },
-      select: { isActive: true },
+      select: { isActive: true, role: true },
     });
     if (!member?.isActive) throw new ForbiddenException('No tienes acceso a este restaurante.');
+    if (member.role !== 'OWNER' && member.role !== 'ADMIN')
+      throw new ForbiddenException('Solo el dueño o administrador puede modificar la disponibilidad de platos.');
   }
 
   private async assertOwner(restaurantId: string, ownerId: string) {
