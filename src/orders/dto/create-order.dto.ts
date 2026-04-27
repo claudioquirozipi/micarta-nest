@@ -30,6 +30,10 @@ export class CreateOrderDto {
 
   @IsOptional()
   @IsString()
+  tableId?: string;
+
+  @IsOptional()
+  @IsString()
   tableNumber?: string;
 
   @IsOptional()

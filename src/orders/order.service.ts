@@ -26,6 +26,7 @@ const ORDER_SELECT = {
   status:          true,
   isPaid:          true,
   tableNumber:     true,
+  tableId:         true,
   customerName:    true,
   customerPhone:   true,
   customerAddress: true,
@@ -35,6 +36,9 @@ const ORDER_SELECT = {
   updatedAt:       true,
   createdBy: {
     select: { id: true, name: true, avatarUrl: true },
+  },
+  table: {
+    select: { id: true, name: true, room: { select: { id: true, name: true } } },
   },
   items: { select: ORDER_ITEM_SELECT },
 };
@@ -106,29 +110,91 @@ export class OrderService {
       };
     });
 
-    const total = itemsData.reduce((s, i) => s + i.subtotal, 0);
+    // ── Flujo con mesa vinculada ──────────────────────────
+    if (dto.tableId) {
+      const table = await this.prisma.table.findFirst({
+        where:  { id: dto.tableId, restaurantId, isActive: true },
+        select: { id: true, name: true },
+      });
+      if (!table) throw new BadRequestException('Mesa no encontrada o inactiva.');
 
-    const initialStatus: OrderStatus = dto.directDelivery
-      ? OrderStatus.SERVED
-      : OrderStatus.PENDING;
+      const activeOrder = await this.prisma.order.findFirst({
+        where: {
+          tableId: dto.tableId,
+          restaurantId,
+          status: { in: [OrderStatus.PENDING, OrderStatus.COOKING, OrderStatus.READY, OrderStatus.SERVED] },
+        },
+        select: { id: true, status: true, total: true },
+      });
+
+      if (activeOrder) {
+        return this.addItemsToExistingOrder(restaurantId, activeOrder, itemsData);
+      }
+
+      const total         = Math.round(itemsData.reduce((s, i) => s + i.subtotal, 0) * 100) / 100;
+      const initialStatus = dto.directDelivery ? OrderStatus.SERVED : OrderStatus.PENDING;
+
+      const order = await this.prisma.order.create({
+        data: {
+          restaurantId,
+          type:        OrderType.TABLE,
+          status:      initialStatus,
+          tableId:     table.id,
+          tableNumber: table.name,
+          notes:       dto.notes,
+          total,
+          createdById: userId,
+          items:       { create: itemsData },
+        },
+        select: ORDER_SELECT,
+      });
+      this.sse.emit(restaurantId, 'order.created', order);
+      return order;
+    }
+
+    // ── Flujo sin mesa vinculada (WhatsApp / sin mesa) ────
+    const total         = Math.round(itemsData.reduce((s, i) => s + i.subtotal, 0) * 100) / 100;
+    const initialStatus = dto.directDelivery ? OrderStatus.SERVED : OrderStatus.PENDING;
 
     const order = await this.prisma.order.create({
       data: {
         restaurantId,
-        type:           dto.type,
-        status:         initialStatus,
-        tableNumber:    dto.tableNumber,
-        customerName:   dto.customerName,
-        customerPhone:  dto.customerPhone,
+        type:            dto.type,
+        status:          initialStatus,
+        tableNumber:     dto.tableNumber,
+        customerName:    dto.customerName,
+        customerPhone:   dto.customerPhone,
         customerAddress: dto.customerAddress,
-        notes:          dto.notes,
-        total:          Math.round(total * 100) / 100,
-        createdById:    userId,
-        items:          { create: itemsData },
+        notes:           dto.notes,
+        total,
+        createdById:     userId,
+        items:           { create: itemsData },
       },
       select: ORDER_SELECT,
     });
     this.sse.emit(restaurantId, 'order.created', order);
+    return order;
+  }
+
+  private async addItemsToExistingOrder(
+    restaurantId: string,
+    activeOrder: { id: string; status: OrderStatus; total: number },
+    itemsData: { dishId: string; dishName: string; dishPrice: number; quantity: number; subtotal: number; notes?: string }[],
+  ) {
+    const newTotal = Math.round(
+      (activeOrder.total + itemsData.reduce((s, i) => s + i.subtotal, 0)) * 100,
+    ) / 100;
+
+    const order = await this.prisma.order.update({
+      where: { id: activeOrder.id },
+      data: {
+        total: newTotal,
+        ...(activeOrder.status === OrderStatus.SERVED ? { status: OrderStatus.PENDING } : {}),
+        items: { create: itemsData },
+      },
+      select: ORDER_SELECT,
+    });
+    this.sse.emit(restaurantId, 'order.updated', order);
     return order;
   }
 

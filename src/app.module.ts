@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
 import { MenuModule } from './menu/menu.module';
 import { OrderModule } from './orders/order.module';
+import { RoomsModule } from './rooms/rooms.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
@@ -17,6 +18,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
     RestaurantModule,
     MenuModule,
     OrderModule,
+    RoomsModule,
     SubscriptionModule,
   ],
 })
