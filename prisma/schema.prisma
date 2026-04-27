@@ -165,11 +165,12 @@ model Order {
 }
 
 model OrderItem {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   dishName  String
   dishPrice Float
   quantity  Int
   subtotal  Float
+  notes     String?
 
   orderId String
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)

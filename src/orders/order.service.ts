@@ -17,6 +17,7 @@ const ORDER_ITEM_SELECT = {
   dishPrice: true,
   quantity:  true,
   subtotal:  true,
+  notes:     true,
 };
 
 const ORDER_SELECT = {
@@ -101,6 +102,7 @@ export class OrderService {
         dishPrice: dish.price,
         quantity:  item.quantity,
         subtotal,
+        notes:     item.notes,
       };
     });
 
