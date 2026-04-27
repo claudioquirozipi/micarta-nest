@@ -22,6 +22,7 @@ import { SubscriptionGuard } from '../subscription/guards/subscription.guard';
 import { OrderService } from './order.service';
 import { SseService, SseEvent } from '../sse/sse.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { AddOrderItemsDto } from './dto/add-order-items.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { QueryOrdersDto } from './dto/query-orders.dto';
 
@@ -57,6 +58,17 @@ export class OrderController {
     @Body() dto: CreateOrderDto,
   ) {
     return this.svc.create(restaurantId, userId, dto);
+  }
+
+  @Post(':id/items')
+  @HttpCode(HttpStatus.OK)
+  addItems(
+    @Param('restaurantId') restaurantId: string,
+    @Param('id') id: string,
+    @CurrentUser() userId: string,
+    @Body() dto: AddOrderItemsDto,
+  ) {
+    return this.svc.addItems(restaurantId, id, userId, dto);
   }
 
   @Get()

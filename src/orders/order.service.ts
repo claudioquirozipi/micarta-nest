@@ -8,6 +8,7 @@ import { MemberRole, OrderStatus, OrderType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SseService } from '../sse/sse.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { AddOrderItemsDto } from './dto/add-order-items.dto';
 import { QueryOrdersDto } from './dto/query-orders.dto';
 
 const ORDER_ITEM_SELECT = {
@@ -196,6 +197,42 @@ export class OrderService {
     });
     this.sse.emit(restaurantId, 'order.updated', order);
     return order;
+  }
+
+  // ── Add items to existing order ───────────────────────────
+
+  async addItems(restaurantId: string, orderId: string, userId: string, dto: AddOrderItemsDto) {
+    const member = await this.assertActiveMember(restaurantId, userId);
+
+    if (member.role === MemberRole.CHEF)
+      throw new ForbiddenException('Los cocineros no pueden modificar órdenes.');
+
+    const existing = await this.prisma.order.findFirst({
+      where:  { id: orderId, restaurantId },
+      select: { id: true, status: true, total: true },
+    });
+    if (!existing) throw new NotFoundException('Orden no encontrada.');
+
+    if (['FINISHED', 'CANCELLED'].includes(existing.status))
+      throw new BadRequestException('No se pueden agregar items a una orden finalizada o cancelada.');
+
+    const dishIds = dto.items.map(i => i.dishId);
+    const dishes  = await this.prisma.dish.findMany({
+      where:  { id: { in: dishIds }, restaurantId, isAvailable: true },
+      select: { id: true, name: true, price: true },
+    });
+
+    if (dishes.length !== dishIds.length)
+      throw new BadRequestException('Uno o más platos no existen o no están disponibles.');
+
+    const dishMap  = new Map(dishes.map(d => [d.id, d]));
+    const itemsData = dto.items.map(item => {
+      const dish     = dishMap.get(item.dishId)!;
+      const subtotal = Math.round(dish.price * item.quantity * 100) / 100;
+      return { dishId: dish.id, dishName: dish.name, dishPrice: dish.price, quantity: item.quantity, subtotal, notes: item.notes };
+    });
+
+    return this.addItemsToExistingOrder(restaurantId, existing, itemsData);
   }
 
   // ── List ──────────────────────────────────────────────────
