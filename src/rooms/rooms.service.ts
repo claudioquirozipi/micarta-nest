@@ -41,7 +41,7 @@ export class RoomsService {
                   ],
                 },
               },
-              select: { id: true, status: true, total: true },
+              select: { id: true, status: true, total: true, isPaid: true },
               orderBy: { createdAt: 'desc' },
               take: 1,
             },
