@@ -20,6 +20,10 @@ export class PublicMenuController {
         phone:       true,
         schedule:    true,
         isActive:    true,
+        socialLinks: {
+          select:  { platform: true, handle: true },
+          orderBy: { platform: 'asc' },
+        },
       },
     });
 
