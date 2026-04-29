@@ -13,7 +13,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { IsBoolean } from 'class-validator';
+import { IsBoolean, IsEnum, IsNumber, IsOptional, Min } from 'class-validator';
+import { PaymentMethod } from '@prisma/client';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { JwtQueryGuard } from '../auth/guards/jwt-query.guard';
@@ -29,6 +30,15 @@ import { QueryOrdersDto } from './dto/query-orders.dto';
 class UpdatePaymentDto {
   @IsBoolean()
   isPaid: boolean;
+
+  @IsOptional()
+  @IsEnum(PaymentMethod)
+  paymentMethod?: PaymentMethod;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  tip?: number;
 }
 
 @Controller('restaurants/:restaurantId/orders')
@@ -106,6 +116,6 @@ export class OrderController {
     @CurrentUser() userId: string,
     @Body() dto: UpdatePaymentDto,
   ) {
-    return this.svc.updatePayment(restaurantId, id, userId, dto.isPaid);
+    return this.svc.updatePayment(restaurantId, id, userId, dto.isPaid, dto.paymentMethod, dto.tip);
   }
 }

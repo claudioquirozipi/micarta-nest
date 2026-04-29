@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MemberRole, OrderStatus, OrderType, Prisma } from '@prisma/client';
+import { MemberRole, OrderStatus, OrderType, PaymentMethod, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SseService } from '../sse/sse.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -26,6 +26,8 @@ const ORDER_SELECT = {
   type:            true,
   status:          true,
   isPaid:          true,
+  paymentMethod:   true,
+  tip:             true,
   tableNumber:     true,
   tableId:         true,
   customerName:    true,
@@ -302,7 +304,14 @@ export class OrderService {
 
   // ── Toggle payment ────────────────────────────────────────
 
-  async updatePayment(restaurantId: string, orderId: string, userId: string, isPaid: boolean) {
+  async updatePayment(
+    restaurantId: string,
+    orderId: string,
+    userId: string,
+    isPaid: boolean,
+    paymentMethod?: PaymentMethod,
+    tip?: number,
+  ) {
     const member = await this.assertActiveMember(restaurantId, userId);
 
     if (member.role === MemberRole.CHEF)
@@ -315,7 +324,7 @@ export class OrderService {
 
     const order = await this.prisma.order.update({
       where:  { id: orderId },
-      data:   { isPaid },
+      data:   { isPaid, paymentMethod: isPaid ? paymentMethod : null, tip: isPaid ? tip : null },
       select: ORDER_SELECT,
     });
     this.sse.emit(restaurantId, 'order.updated', order);

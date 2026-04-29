@@ -58,6 +58,14 @@ enum PaymentStatus {
   REJECTED
 }
 
+enum PaymentMethod {
+  CASH
+  YAPE
+  PLIN
+  CARD
+  OTHER
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -145,7 +153,9 @@ model Order {
   id              String      @id @default(cuid())
   type            OrderType
   status          OrderStatus @default(PENDING)
-  isPaid          Boolean     @default(false)
+  isPaid          Boolean       @default(false)
+  paymentMethod   PaymentMethod?
+  tip             Float?
   tableNumber     String?
   tableId         String?
   customerName    String?
