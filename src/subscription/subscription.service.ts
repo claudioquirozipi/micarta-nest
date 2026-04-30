@@ -19,7 +19,7 @@ export class SubscriptionService {
     private config:  ConfigService,
     private culqi:   CulqiService,
   ) {
-    this.monthlyPrice = this.config.get<number>('MONTHLY_PRICE_SOLES', 29);
+    this.monthlyPrice = this.config.get<number>('MONTHLY_PRICE_SOLES', 50);
     this.yapeNumber   = this.config.get<string>('YAPE_NUMBER', '');
   }
 
