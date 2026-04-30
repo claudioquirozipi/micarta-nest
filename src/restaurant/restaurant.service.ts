@@ -69,15 +69,25 @@ export class RestaurantService {
   async findMine(userId: string) {
     const restaurant = await this.prisma.restaurant.findFirst({
       where:  { members: { some: { userId, isActive: true } } },
-      select: { ...RESTAURANT_SELECT, _count: { select: { dishes: true } } },
+      select: {
+        ...RESTAURANT_SELECT,
+        _count:       { select: { dishes: true } },
+        subscription: { select: { status: true, currentPeriodEnd: true } },
+      },
     });
     if (!restaurant) return null;
-    const { _count, ...rest } = restaurant;
+    const { _count, subscription, ...rest } = restaurant;
     const member = await this.prisma.restaurantMember.findFirst({
       where:  { restaurantId: restaurant.id, userId },
       select: { role: true },
     });
-    return { ...rest, hasMenu: _count.dishes > 0, myRole: member?.role ?? null };
+    return {
+      ...rest,
+      hasMenu:               _count.dishes > 0,
+      myRole:                member?.role ?? null,
+      subscriptionStatus:    subscription?.status           ?? null,
+      subscriptionPeriodEnd: subscription?.currentPeriodEnd?.toISOString() ?? null,
+    };
   }
 
   async getMemberAccess(slug: string, userId: string) {
