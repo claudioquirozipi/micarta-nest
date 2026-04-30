@@ -68,7 +68,7 @@ export class RestaurantService {
 
   async findMine(userId: string) {
     const restaurant = await this.prisma.restaurant.findFirst({
-      where:  { ownerId: userId },
+      where:  { members: { some: { userId, isActive: true } } },
       select: { ...RESTAURANT_SELECT, _count: { select: { dishes: true } } },
     });
     if (!restaurant) return null;
