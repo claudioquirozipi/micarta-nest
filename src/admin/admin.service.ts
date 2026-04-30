@@ -13,8 +13,10 @@ export class AdminService {
 
     const restaurants = await this.prisma.restaurant.findMany({
       select: {
-        id:    true,
-        name:  true,
+        id:      true,
+        name:    true,
+        slug:    true,
+        logoUrl: true,
         owner: { select: { email: true, name: true } },
         subscription: {
           select: { status: true, currentPeriodEnd: true },
@@ -43,6 +45,8 @@ export class AdminService {
       return {
         restaurantId:       r.id,
         restaurantName:     r.name,
+        restaurantSlug:     r.slug,
+        restaurantLogo:     r.logoUrl ?? null,
         ownerName:          r.owner.name,
         ownerEmail:         r.owner.email,
         subscriptionStatus: sub?.status ?? null,
