@@ -49,7 +49,7 @@ export class RestaurantService {
 
     const { socialLinks, ...rest } = dto;
 
-    return this.prisma.restaurant.create({
+    const restaurant = await this.prisma.restaurant.create({
       data: {
         ...rest,
         ownerId,
@@ -63,13 +63,17 @@ export class RestaurantService {
       },
       select: RESTAURANT_SELECT,
     });
+    return { ...restaurant, hasMenu: false };
   }
 
   async findMine(userId: string) {
-    return this.prisma.restaurant.findFirst({
-      where: { ownerId: userId },
-      select: RESTAURANT_SELECT,
+    const restaurant = await this.prisma.restaurant.findFirst({
+      where:  { ownerId: userId },
+      select: { ...RESTAURANT_SELECT, _count: { select: { dishes: true } } },
     });
+    if (!restaurant) return null;
+    const { _count, ...rest } = restaurant;
+    return { ...rest, hasMenu: _count.dishes > 0 };
   }
 
   async getMemberAccess(slug: string, userId: string) {
