@@ -73,7 +73,11 @@ export class RestaurantService {
     });
     if (!restaurant) return null;
     const { _count, ...rest } = restaurant;
-    return { ...rest, hasMenu: _count.dishes > 0 };
+    const member = await this.prisma.restaurantMember.findFirst({
+      where:  { restaurantId: restaurant.id, userId },
+      select: { role: true },
+    });
+    return { ...rest, hasMenu: _count.dishes > 0, myRole: member?.role ?? null };
   }
 
   async getMemberAccess(slug: string, userId: string) {
